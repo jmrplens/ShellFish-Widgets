@@ -13,7 +13,7 @@ All the widgets that will be added to this repository will be used in the same w
    ```bash
    mkdir /opt/shellfish_widgets
    cd /opt/shellfish_widgets
-   wget -o https://github.com/jmrplens/ShellFish-Widgets/raw/main/small_widget_A.sh
+   wget https://github.com/jmrplens/ShellFish-Widgets/raw/main/small_widget_A.sh
    ```
 2. Enable its execution:
    ```
