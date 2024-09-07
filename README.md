@@ -1,5 +1,7 @@
 # ShellFish-Widgets
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f06416f582524c7591bf436f7f7b9846)](https://app.codacy.com/gh/jmrplens/ShellFish-Widgets?utm_source=github.com&utm_medium=referral&utm_content=jmrplens/ShellFish-Widgets&utm_campaign=Badge_Grade)
+
 Bash scripts to send information from the server to the widget.
 
 It is important to have the `.shellfishrc` file on the server. To do this, go to the app options in iOS, select `Shell Integration`, press `Install`, and choose the server where you want to include it.
