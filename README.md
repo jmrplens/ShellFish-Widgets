@@ -21,13 +21,13 @@ All the widgets that will be added to this repository will be used in the same w
    ```
 3. Run it:
    ```
-   /opt/shellfish_widgets/small_widget_A.sh --server-name Example
+   /opt/shellfish_widgets/small_widget_A.sh --server_name Example
    ```
    With this, you will have already sent the information to the widget you set on your iOS. If you want, you can configure some details:
-   - **Server name**: This is the name that will appear on the widget, if it is not configured, the hostame of the server will be used `--server-name Example`.
+   - **Server name**: This is the name that will appear on the widget, if it is not configured, the hostame of the server will be used `--server_name Example`.
    - **Disk**: If you want to send the used space of a disk other than the main one `--disk /volumeX`.
    - **CPU temperature**: If you want to use another sensor or manually specify the sensor because it is not recognized `--cpu_sensor Tctl`.
-   - **Target**: To send the information to a specific widget, indicate the widget's reference `--target widget1`.
+   - **Target**: To send/create the information to a specific widget, indicate the widget's reference `--target Small_A`.
 
 4. (Optional) Add it to the crontab (in this example, it runs every 10 minutes) to have updated information periodically:
    ```
@@ -39,6 +39,14 @@ All the widgets that will be added to this repository will be used in the same w
 
 #### Type A
 
-By running `./your_path/small_widget_A.sh --server-name Example`, the widget will look like this:
+By running `./your_path/small_widget_A.sh --server_name Example`, the widget will look like this:
 
 <img src=".github/small_widget_A.png" width="150">
+
+Using the parameter `--target XX` you can display the information of several servers in different widgets:
+
+- `./your_path/small_widget_A.sh --server_name Mastodon --target Mastodon_Small`
+- `./your_path/small_widget_A.sh --server_name NGINX --target NGINX_Small`
+- `./your_path/small_widget_A.sh --server_name HA --target Home_Assistant_Small`
+
+<img src=".github/small_widget_a_full.png" width="300">
