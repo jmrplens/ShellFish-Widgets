@@ -1,4 +1,5 @@
 # ShellFish-Widgets
+
 Bash scripts to send information from the server to the widget.
 
 It is important to have the `.shellfishrc` file on the server. To do this, go to the app options in iOS, select `Shell Integration`, press `Install`, and choose the server where you want to include it.
@@ -41,7 +42,7 @@ All the widgets that will be added to this repository will be used in the same w
 
 By running `./your_path/small_widget_A.sh --server_name Example`, the widget will look like this:
 
-<img src=".github/small_widget_A.png" width="150">
+<img alt="Small Widget A Example" src=".github/small_widget_A.png" width="150">
 
 Using the parameter `--target XX` you can display the information of several servers in different widgets:
 
@@ -49,4 +50,4 @@ Using the parameter `--target XX` you can display the information of several ser
 - `./your_path/small_widget_A.sh --server_name NGINX --target NGINX_Small`
 - `./your_path/small_widget_A.sh --server_name HA --target Home_Assistant_Small`
 
-<img src=".github/small_widget_a_full.png" width="300">
+<img alt="Small Widget A Multi-Example" src=".github/small_widget_a_full.png" width="300">
