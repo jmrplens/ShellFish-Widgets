@@ -42,3 +42,11 @@ All the widgets that will be added to this repository will be used in the same w
 By running `./your_path/small_widget_A.sh --server_name Example`, the widget will look like this:
 
 <img src=".github/small_widget_A.png" width="150">
+
+Using the parameter `--target XX` you can display the information of several servers in different widgets:
+
+- `./your_path/small_widget_A.sh --server_name Mastodon --target Mastodon_Small`
+- `./your_path/small_widget_A.sh --server_name NGINX --target NGINX_Small`
+- `./your_path/small_widget_A.sh --server_name HA --target Home_Assistant_Small`
+
+<img src=".github/small_widget_a_full.png" width="300">
