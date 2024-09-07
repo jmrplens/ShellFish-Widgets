@@ -80,9 +80,9 @@ fi
 mem_string="${mem_percent}%"
 
 # 2. Disk usage as a percentage
-disk_info_percent=$(df /dev/${DISK} -h --output=pcent | tail -1 | tr -d ' %')
-disk_total_size="$(df /dev/${DISK} -h --output=size | tail -1)B"
-disk_used_size="$(df /dev/${DISK} -h --output=used | tail -1)B"
+disk_info_percent=$(df /dev/"${DISK}" -h --output=pcent | tail -1 | tr -d ' %')
+disk_total_size=$(df /dev/"${DISK}" -h --output=size | tail -1)B
+disk_used_size=$(df /dev/"${DISK}" -h --output=used | tail -1)B
 
 # String for disk usage as a percentage
 disk_string="${disk_info_percent}%"
@@ -161,7 +161,7 @@ temp_color=$(calculate_color "$cpu_temp" 45 90)
 
 # Widget command using SF Symbols and strings in the correct format with colors
 widget \
-    --target ${TARGET} \
+    --target "${TARGET}" \
     --text "${SERVER_NAME} " --color "foreground" --icon thermometer --color "$temp_color" --text " $cpu_temp_string\n" \
     --color "foreground" --text " " --icon cpu           --text " $cpu_string\n"     --color "$cpu_color"    --progress "$cpu_string" --text "\n" \
     --color "foreground" --text " " --icon memorychip    --text " $mem_string\n"     --color "$memory_color" --progress "$mem_string" --text "\n" \
