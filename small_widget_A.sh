@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Load to make widget command available
+# shellcheck source=/dev/null
 source /root/.shellfishrc
 
 # Default values
@@ -27,11 +28,41 @@ DISK=${DISK:-$DEFAULT_DISK}
 CPU_TEMP_SENSOR=${CPU_TEMP_SENSOR:-$DEFAULT_CPU_TEMP_SENSOR}
 TARGET=${TARGET:-$DEFAULT_TARGET}
 
+# Function to calculate the interpolated color between green (min) and red (max)
+calculate_color() {
+    local value=$1
+    local min_value=$2
+    local max_value=$3
+
+    # If value is lee than min_value, clip it to min_value
+    if (( value < min_value )); then
+        value=$min_value
+    fi
+
+    # Normalize value between 0 and 1
+    local range=$((max_value - min_value))
+    local normalized_value=$((100 * (value - min_value) / range))
+
+    if (( normalized_value <= 33 )); then
+        # Interpolating between green (#00FF00) and yellow (#FFFF00)
+        local red=$((255 * normalized_value / 33))
+        printf "#%02XFF00\n" $red
+    elif (( normalized_value <= 66 )); then
+        # Interpolating between yellow (#FFFF00) and orange (#FFA500)
+        local green=$((255 - (90 * (normalized_value - 33) / 33)))
+        printf "#FFA5%02X\n" $green
+    else
+        # Interpolating between orange (#FFA500) and red (#FF0000)
+        local green=$((165 - (165 * (normalized_value - 66) / 34)))
+        printf "#FF%02X00\n" $green
+    fi
+}
+
 # Try to automatically detect the main disk if it's not defined
 if [ -z "$DISK" ]; then
     # Attempt 1: lsblk
     DISK=$(lsblk -J -o NAME,MOUNTPOINT | jq -r '.blockdevices[] | select(.children != null) | .children[] | select(.mountpoint == "/") | .name')
-    
+
     # Attempt 2: df (fallback method)
     if [ -z "$DISK" ]; then
         DISK=$(df / | grep -Eo '^/dev/[a-zA-Z0-9]+' | cut -d'/' -f3)
@@ -44,24 +75,6 @@ if [ -z "$DISK" ]; then
     fi
 fi
 
-# Function to interpolate colors in hexadecimal (green to red)
-calculate_color() {
-    local value=$1
-    local min_value=$2
-    local max_value=$3
-
-    if (( value <= min_value )); then
-        echo "#00FF00"  # Green
-    elif (( value >= max_value )); then
-        echo "#FF0000"  # Red
-    else
-        if (( value < (max_value + min_value) / 2 )); then
-            echo "#FFFF00"  # Yellow
-        else
-            echo "#FFA500"  # Orange
-        fi
-    fi
-}
 
 # 1. Memory usage as a percentage
 if [[ -f /proc/meminfo ]]; then
@@ -81,7 +94,6 @@ mem_string="${mem_percent}%"
 
 # 2. Disk usage as a percentage
 disk_info_percent=$(df /dev/"${DISK}" -h --output=pcent | tail -1 | tr -d ' %')
-disk_total_size=$(df /dev/"${DISK}" -h --output=size | tail -1)B
 disk_used_size=$(df /dev/"${DISK}" -h --output=used | tail -1)B
 
 # String for disk usage as a percentage
@@ -154,9 +166,9 @@ fi
 cpu_string="${cpu_usage}%"
 
 # 5. Color calculations based on percentages
-cpu_color=$(calculate_color "$cpu_usage" 20 90)
-memory_color=$(calculate_color "$mem_percent" 20 90)
-disk_color=$(calculate_color "$disk_info_percent" 20 90)
+cpu_color=$(calculate_color "$cpu_usage" 20 95)
+memory_color=$(calculate_color "$mem_percent" 20 95)
+disk_color=$(calculate_color "$disk_info_percent" 30 95)
 temp_color=$(calculate_color "$cpu_temp" 45 90)
 
 # Widget command using SF Symbols and strings in the correct format with colors
