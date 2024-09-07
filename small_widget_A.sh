@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Load to make widget command available
-source /root/.bashrc
+source /root/.shellfishrc
 
 # Default values
 DEFAULT_DISK=""
 DEFAULT_SERVER_NAME=$(hostname)
 DEFAULT_CPU_TEMP_SENSOR=""  # Blank to trigger auto-detection
-DEFAULT_TARGET=""
+DEFAULT_TARGET="Small_Widget_A"
 
 # Parse flags for server_name, disk, and cpu_sensor
 while [[ "$#" -gt 0 ]]; do
