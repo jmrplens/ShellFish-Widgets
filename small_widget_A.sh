@@ -166,9 +166,9 @@ fi
 cpu_string="${cpu_usage}%"
 
 # 5. Color calculations based on percentages
-cpu_color=$(calculate_color "$cpu_usage" 20 95)
-memory_color=$(calculate_color "$mem_percent" 20 95)
-disk_color=$(calculate_color "$disk_info_percent" 30 95)
+cpu_color=$(calculate_color "$cpu_usage" 10 95)
+memory_color=$(calculate_color "$mem_percent" 10 95)
+disk_color=$(calculate_color "$disk_info_percent" 20 95)
 temp_color=$(calculate_color "$cpu_temp" 45 90)
 
 # Widget command using SF Symbols and strings in the correct format with colors
