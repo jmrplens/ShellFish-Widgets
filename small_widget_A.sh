@@ -7,7 +7,7 @@ source /root/.shellfishrc
 DEFAULT_DISK=""
 DEFAULT_SERVER_NAME=$(hostname)
 DEFAULT_CPU_TEMP_SENSOR=""  # Blank to trigger auto-detection
-DEFAULT_TARGET="Small_Widget_A"
+DEFAULT_TARGET="Small_A"
 
 # Parse flags for server_name, disk, and cpu_sensor
 while [[ "$#" -gt 0 ]]; do
