@@ -34,26 +34,32 @@ calculate_color() {
     local min_value=$2
     local max_value=$3
 
-    # If value is lee than min_value, clip it to min_value
-    if (( value < min_value )); then
-        value=$min_value
+    # Ensure valid range
+    if (( max_value <= min_value )); then
+        echo "Error: max_value must be greater than min_value."
+        return 1
     fi
 
-    # Normalize value between 0 and 1
+    # If value is out of bounds, clamp to min/max
+    if (( value <= min_value )); then
+        echo "#00FF00"  # Green for below or equal to min
+        return 0
+    elif (( value >= max_value )); then
+        echo "#FF0000"  # Red for above or equal to max
+        return 0
+    fi
+
+    # Normalize value between 0 and 100
     local range=$((max_value - min_value))
     local normalized_value=$((100 * (value - min_value) / range))
 
-    if (( normalized_value <= 33 )); then
-        # Interpolating between green (#00FF00) and yellow (#FFFF00)
-        local red=$((255 * normalized_value / 33))
+    if (( normalized_value <= 50 )); then
+        # Interpolating from green (#00FF00) to yellow (#FFFF00)
+        local red=$((255 * normalized_value / 50))
         printf "#%02XFF00\n" $red
-    elif (( normalized_value <= 66 )); then
-        # Interpolating between yellow (#FFFF00) and orange (#FFA500)
-        local green=$((255 - (90 * (normalized_value - 33) / 33)))
-        printf "#FFA5%02X\n" $green
     else
-        # Interpolating between orange (#FFA500) and red (#FF0000)
-        local green=$((165 - (165 * (normalized_value - 66) / 34)))
+        # Interpolating from yellow (#FFFF00) to red (#FF0000) via orange
+        local green=$((255 - (255 * (normalized_value - 50) / 50)))
         printf "#FF%02X00\n" $green
     fi
 }
@@ -101,36 +107,160 @@ disk_string="${disk_info_percent}%"
 
 # 3. CPU temperature
 
-# Check various methods to get the temperature
-if command -v sensors >/dev/null 2>&1; then
-    # Use 'sensors' to get the CPU temperature for AMD Zen (look for 'Tctl' under 'k10temp')
-    temp=$(sensors | grep -E 'Tctl|Tdie' | awk '{print $2}' | sed 's/[^0-9.]//g')
-    if [ -z "$temp" ]; then
-        # Fallback: try getting other sensor temperatures if 'Tctl' is not found
-        temp=$(sensors | grep -E "Core|Package|temp1|Composite|edge" | awk '{print $2}' | sed 's/[^0-9.]//g' | head -n 1)
+# Function to get the temperature using 'sensors'
+get_sensors_temp() {
+    if command -v sensors &> /dev/null; then
+        sensors_output=$(sensors)
+        temp=$(echo "$sensors_output" | grep -E 'Package id 0:|Core 0:|temp1:|coretemp|k10temp|acpitz|Adapter: Virtual device|CPU:' | grep -Eo '[+-]?[0-9]+(\.[0-9]+)?°C' | head -n 1 | grep -Eo '[0-9]+(\.[0-9]+)?')
+        if [ -n "$temp" ]; then
+            echo "$temp"
+            return 0
+        fi
     fi
-fi
-if [ -d "/sys/class/thermal" ] && [ -z "$temp" ]; then
-    temp=$(cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 1)
-    if [ "$temp" ]; then
-        # Some systems report the temperature in millidegrees Celsius (e.g., 50000 means 50.0°C)
-        temp=$((temp / 1000))
-    fi
-fi
-# Function to fetch CPU temperature from /proc/cpuinfo for ARM-based systems (e.g., Raspberry Pi)
-if command -v vcgencmd >/dev/null 2>&1 && [ -z "$temp" ]; then
-    temp=$(vcgencmd measure_temp | grep -oE '[0-9]*\.[0-9]*')
-fi
-# Ensure we have a temperature value
-if [ -z "$temp" ]; then
-    echo "Unable to retrieve CPU temperature. Ensure necessary tools are installed (e.g., lm-sensors)." >&2
-    echo "Failed to get CPU temperature" >&2
-    exit 1
-fi
+    return 1
+}
 
-# String for CPU temperature
-cpu_temp=$(printf "%.0f" "$temp")
-cpu_temp_string="${cpu_temp}°C"
+# Function to get temperature from the system files in /sys/class/thermal/
+get_sys_temp() {
+    for zone in /sys/class/thermal/thermal_zone*/temp; do
+        if [ -f "$zone" ]; then
+            temp=$(cat "$zone" 2>/dev/null)
+            if [[ -n "$temp" && "$temp" =~ ^[0-9]+$ ]]; then
+                if [ "$temp" -gt 1000 ]; then
+                    temp=$(echo "scale=1; $temp / 1000" | bc)
+                fi
+                echo "$temp"
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+# Function to get temperature from /sys/class/hwmon/
+get_hwmon_temp() {
+    for hwmon in /sys/class/hwmon/*; do
+        if [[ -f "$hwmon/name" ]]; then
+            sensor_name=$(cat "$hwmon/name")
+            if [[ "$sensor_name" == "coretemp" || "$sensor_name" == "k10temp" ]]; then
+                for temp_input in "$hwmon"/temp*_input; do
+                    if [ -f "$temp_input" ]; then
+                        temp=$(cat "$temp_input" 2>/dev/null)
+                        if [[ -n "$temp" && "$temp" =~ ^[0-9]+$ ]]; then
+                            if [ "$temp" -gt 1000 ]; then
+                                temp=$(echo "scale=1; $temp / 1000" | bc)
+                            fi
+                            echo "$temp"
+                            return 0
+                        fi
+                    fi
+                done
+            fi
+        fi
+    done
+    return 1
+}
+
+# Function to get the temperature using ACPI from /proc
+get_acpi_proc_temp() {
+    for zone in /proc/acpi/thermal_zone/*/temperature; do
+        if [ -f "$zone" ]; then
+            temp=$(grep -Eo '[0-9]+(\.[0-9]+)?' "$zone" 2>/dev/null)
+            if [ -n "$temp" ]; then
+                echo "$temp"
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+# Function to get the CPU temperature using direct ACPI commands
+get_acpi_temp() {
+    if command -v acpi &> /dev/null; then
+        acpi_output=$(acpi -t)
+        temp=$(echo "$acpi_output" | grep -Eo '[0-9]+(\.[0-9]+)?' | head -n 1)
+        if [ -n "$temp" ]; then
+            echo "$temp"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# Function to find the first successful method to obtain temperature
+find_working_temp_method() {
+    temp=$(get_sensors_temp)
+    if [ -n "$temp" ]; then
+        echo "get_sensors_temp"
+        return 0
+    fi
+
+    temp=$(get_sys_temp)
+    if [ -n "$temp" ]; then
+        echo "get_sys_temp"
+        return 0
+    fi
+
+    temp=$(get_hwmon_temp)
+    if [ -n "$temp" ]; then
+        echo "get_hwmon_temp"
+        return 0
+    fi
+
+    temp=$(get_acpi_proc_temp)
+    if [ -n "$temp" ]; then
+        echo "get_acpi_proc_temp"
+        return 0
+    fi
+
+    temp=$(get_acpi_temp)
+    if [ -n "$temp" ]; then
+        echo "get_acpi_temp"
+        return 0
+    fi
+
+    echo "No method found."
+    return 1
+}
+
+# Function to average 5 temperature readings over a period of 2 seconds
+get_linux_temp() {
+    local total=0
+    local count=5
+    local method="$1"
+
+    for i in $(seq 1 $count); do
+        temp=$($method)
+        if [ -n "$temp" ]; then
+            total=$(echo "$total + $temp" | bc)
+        else
+            echo "Could not obtain temperature in attempt $i"
+        fi
+        sleep 0.4
+    done
+
+    # Calculate the average of the collected temperatures
+    if [ "$total" != 0 ]; then
+        average=$(echo "scale=2; $total / $count" | bc)
+        echo "$average"
+        return 0
+    else
+        echo "Could not obtain a valid temperature average."
+        return 1
+    fi
+}
+
+# Find the first working temperature method and cache it
+temp_method=$(find_working_temp_method)
+if [ -n "$temp_method" ]; then
+    cpu_temp=$(printf "%.0f" "$(get_linux_temp "$temp_method")")
+    cpu_temp_string="${cpu_temp}°C"
+else
+    echo "No valid temperature method found."
+    cpu_temp="0"
+    cpu_temp_string="N/A"
+fi
 
 # 4. CPU usage as a percentage
 if command -v top >/dev/null 2>&1; then

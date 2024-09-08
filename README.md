@@ -14,6 +14,7 @@ Your server must have the following tools installed:
 
 - `curl`: To send the information to the widget. [More info](https://curl.se/)
 - `jq`: To process the JSON response. [More info](https://stedolan.github.io/jq/)
+- `bc`: To perform floating-point arithmetic. [More info](https://www.gnu.org/software/bc/)
 
 ## Usage
 
